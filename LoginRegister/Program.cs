@@ -1,23 +1,26 @@
 ﻿using LoginRegister.Data;
 using Microsoft.EntityFrameworkCore;
+/* NEW → */
+using Npgsql.EntityFrameworkCore.PostgreSQL;   // Postgres provider
 
 var builder = WebApplication.CreateBuilder(args);
 
 /* ----------  DATABASE  ---------- */
 builder.Services.AddDbContext<LoginDbContext>(options =>
-    options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
+{   // switched from UseSqlServer ➜ UseNpgsql
+    options.UseNpgsql(Environment.GetEnvironmentVariable("DATABASE_URL"));
+});
 
 /* ----------  MVC  ---------- */
 builder.Services.AddControllersWithViews();
 
-/* ----------  SESSION (NEW)  ---------- */
-builder.Services.AddDistributedMemoryCache();   // required for session
+/* ----------  SESSION  ---------- */
+builder.Services.AddDistributedMemoryCache();
 builder.Services.AddSession(options =>
 {
-    // optional fine‑tuning
     options.IdleTimeout = TimeSpan.FromMinutes(30);
     options.Cookie.HttpOnly = true;
-    options.Cookie.IsEssential = true;          // GDPR‑compliant default
+    options.Cookie.IsEssential = true;
 });
 
 var app = builder.Build();
@@ -34,10 +37,7 @@ app.UseStaticFiles();
 
 app.UseRouting();
 
-app.UseSession();        // <<‑‑ add THIS before auth/authorization
-
-/* You’re not doing cookie‑based auth yet, 
-   so no app.UseAuthentication() here.   */
+app.UseSession();          // keep session before authorization
 app.UseAuthorization();
 
 app.MapControllerRoute(
